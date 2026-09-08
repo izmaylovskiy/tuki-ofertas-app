@@ -97,3 +97,6 @@ ios/Runner/GoogleService-Info.plist
 **/android/gradlew.bat
 **/android/local.properties
 **/android/**/GeneratedPluginRegistrant.java
+# Android — build артефакты
+android/build/
+android/app/build/
