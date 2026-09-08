@@ -1,0 +1,74 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: apple-connection
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.tuki.ofertas
+      vars:
+        APP_STORE_APPLE_ID: 6809677415 # ← ПОМЕНЯЕМ на реальный App ID
+        BUNDLE_ID: "com.tuki.ofertas"
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Install pods
+        script: |
+          find . -name "Podfile" -execdir pod install \;
+      - name: Flutter analyze
+        script: |
+          flutter analyze
+        ignore_failure: true
+      - name: Set build number
+        script: |
+          cd $CM_BUILD_DIR
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || echo "0")
+          echo "Latest build number in App Store: $LATEST_BUILD_NUMBER"
+          BUILD_NUMBER=$(($LATEST_BUILD_NUMBER + 1))
+          echo "Setting build number to $BUILD_NUMBER"
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal testers
+
+  android-release:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter packages pub get
+      - name: Flutter analyze
+        script: |
+          flutter analyze
+        ignore_failure: true
+      - name: Build Android AAB
+        script: |
+          flutter build appbundle --release
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - flutter_drive.log
