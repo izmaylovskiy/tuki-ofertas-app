@@ -25,8 +25,10 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon.png
+    - assets/icon/icon_ios.png
 
 flutter_launcher_icons:
-  android: true
+  android: false                          # НЕ трогаем Android иконки
   ios: true
-  image_path: "assets/icon.png"
+  image_path: "assets/icon/icon_ios.png"  # непрозрачная иконка для iOS
+  remove_alpha_ios: true                  # на всякий случай убираем альфу
