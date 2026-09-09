@@ -6,19 +6,27 @@ workflows:
     integrations:
       app_store_connect: apple-connection
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.tuki.ofertas
       vars:
-        APP_STORE_APPLE_ID: 6809677415 # ← ПОМЕНЯЕМ на реальный App ID
+        APP_STORE_APPLE_ID: 6809677415
         BUNDLE_ID: "com.tuki.ofertas"
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up local.properties
+      - name: Initialize keychain
         script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/android/local.properties"
+          keychain initialize
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Set up signing certificate
+        script: |
+          keychain add-certificates
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
       - name: Get Flutter packages
         script: |
           flutter packages pub get
@@ -29,7 +37,7 @@ workflows:
         script: |
           flutter analyze
         ignore_failure: true
-      - name: Set build number
+      - name: Set build number and build ipa
         script: |
           cd $CM_BUILD_DIR
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" || echo "0")
@@ -48,8 +56,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        beta_groups:
-          - Internal testers
 
   android-release:
     name: Android Release
